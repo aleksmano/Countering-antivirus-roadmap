@@ -4,6 +4,10 @@ Below I will outline several ways to write a shellcode loader in memory and how 
 
 1. [Shellcode encryption](#1)
 2. [Using functions via address](#2)
+3. [Result processing Windows API](#3)
+4. [Сhecking the process name](#4)
+5. [Сhecking mutex before launching](#5)
+6. [Allocating a large amount of memory for shellcode](#6)
 
 ## <a name="1">Shellcode encryption </a>
 The simplest and most important way to hide the load is shellcode encryption , this will help bypass static analysis of your file.
@@ -37,7 +41,7 @@ for example:
   char *ex = (char*)Alloc(NULL,sizeof(shellcode),MEM_COMMIT,PAGE_EXECUTE-READWRITE);
 ```
 
-## Result processing Windows API
+## <a name="3">Result processing Windows API</a>
 
 The antivirus emulator may not handle all Windows API functions and returns by default Null
 
@@ -52,7 +56,7 @@ for example:
   }
   return 0;
 ```
-## Сhecking the process name
+## <a name="4">Сhecking the process name</a>
 
 Antivirus during the binary file check can run it not with the original name, to bypass dynamic checking, you can check the name of the file being run.
 
@@ -68,7 +72,7 @@ for example:
  } 
 ```
 
-## Сhecking mutex before launching
+## <a name="5">Сhecking mutex before launching</a>
 
 You can start the program execution process only if a certain mutex is found in the system. If you try to create an existing mutex, the process throws an error.
 
@@ -89,7 +93,7 @@ for example:
  return 0;
 ```
 
-## <a name="Allocating">Allocating a large amount of memory for shellcode</a>
+## <a name="6">Allocating a large amount of memory for shellcode</a>
 
 With dynamic program analysis, antiviruses analyze the allocated memory, but they can analyze a certain amount of memory. you can allocate more memory than is necessary to write the silk code and write the first part, which will be analyzed by antivir with empty bytes.
 
