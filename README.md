@@ -1,5 +1,4 @@
-# countering_antivirus
-countering antivirus roadmap
+# Countering antivirus roadmap
 
 Below I will outline several ways to write a shellcode loader in memory and how to hide it from antivirus on C++.
 
