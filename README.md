@@ -8,6 +8,7 @@ Below I will outline several ways to write a shellcode loader in memory and how 
 4. [Сhecking the process name](#4)
 5. [Сhecking mutex before launching](#5)
 6. [Allocating a large amount of memory for shellcode](#6)
+7. [Obfuscate strings](#7)
 
 ## <a name="1">Shellcode encryption </a>
 The simplest and most important way to hide the load is shellcode encryption , this will help bypass static analysis of your file.
@@ -110,3 +111,9 @@ for example:
  
  ((void(*)())ex)();
 ```
+
+## <a name="7">Obfuscate strings</a>
+
+When plain text string literals are used in C++ programs, they will be compiled as-is into the resultant binary. This causes them to be incredibly easy to find. One can simply open up the binary file in a text editor to see all of the embedded string literals in plain view. A special utility called strings exists which can be used to search binary files for plain text strings.
+
+You can use special strings obfuscators for example https://github.com/adamyaxley/Obfuscate
