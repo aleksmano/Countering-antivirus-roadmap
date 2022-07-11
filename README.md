@@ -1,8 +1,11 @@
 # Countering antivirus roadmap
 
 Below I will outline several ways to write a shellcode loader in memory and how to hide it from antivirus on C++.
-[Allocating](#Allocating)
-## Shellcode encryption
+
+1. [Shellcode encryption](#1)
+2. [Using functions via address](#2)
+
+## <a name="1">Shellcode encryption </a>
 The simplest and most important way to hide the load is shellcode encryption , this will help bypass static analysis of your file.
 You can use both simple xor and more complex encryption methods such as rc4 , etc .
 
@@ -22,7 +25,7 @@ for example:
   }
 ```
 
-## Using functions via address
+## <a name="2">Using functions via address</a>
 
 You can use instead of a direct function call , a call through the address of this function in memory
 
